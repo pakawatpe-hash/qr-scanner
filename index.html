@@ -3,513 +3,662 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scanner Connect</title>
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <title>QR Scanner - Mobile to PC</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Lexend:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #00ff88;
+            --primary-dark: #00cc6a;
+            --bg-dark: #0a0e1a;
+            --bg-darker: #050810;
+            --text-light: #e8f0ff;
+            --text-muted: #7a8ba8;
+            --accent: #ff6b9d;
+            --border: rgba(0, 255, 136, 0.2);
+            --glow: rgba(0, 255, 136, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Kanit', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Lexend', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
         }
-        .container {
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 900px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 30px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 107, 157, 0.08) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            z-index: 0;
         }
-        h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #1a1a2e;
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            font-size: 3rem;
             margin-bottom: 10px;
-            text-align: center;
+            filter: drop-shadow(0 0 20px var(--glow));
+            animation: pulse 2s ease-in-out infinite;
         }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
         .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 16px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 300;
         }
+
         .mode-selector {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 30px;
-            background: #f0f0f0;
-            padding: 8px;
-            border-radius: 15px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .mode-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            background: transparent;
-            color: #666;
-            font-family: 'Kanit', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 10px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--border);
+            border-radius: 16px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Lexend', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-light);
+            position: relative;
+            overflow: hidden;
         }
+
+        .mode-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: var(--glow);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .mode-btn:hover {
+            border-color: var(--primary);
+            background: rgba(0, 255, 136, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+        }
+
+        .mode-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
         .mode-btn.active {
-            background: white;
-            color: #ff6b35;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 255, 136, 0.05));
+            border-color: var(--primary);
+            box-shadow: 0 0 30px var(--glow);
         }
-        .mode-content {
-            display: none;
-        }
-        .mode-content.active {
+
+        .mode-icon {
+            font-size: 2.5rem;
             display: block;
-        }
-        .room-code-display {
-            background: linear-gradient(135deg, #ff6b35, #00c9b7);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .room-code-label {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 14px;
             margin-bottom: 10px;
         }
-        .room-code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 48px;
-            font-weight: 700;
-            color: white;
-            letter-spacing: 8px;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+        .section {
+            display: none;
+            animation: slideUp 0.5s ease-out;
         }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(0, 255, 136, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.15);
+        }
+
+        .pairing-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 8px;
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--glow);
+            margin: 20px 0;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px var(--glow); }
+            50% { text-shadow: 0 0 30px var(--glow), 0 0 40px var(--glow); }
+        }
+
         .input-group {
             margin-bottom: 20px;
         }
-        .input-group label {
+
+        label {
             display: block;
             margin-bottom: 8px;
-            color: #1a1a2e;
-            font-weight: 600;
-            font-size: 14px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .input-group input {
+
+        input[type="text"] {
             width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #f0f0f0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--border);
             border-radius: 12px;
+            color: var(--text-light);
             font-family: 'JetBrains Mono', monospace;
-            font-size: 18px;
+            font-size: 1.5rem;
             text-align: center;
-            letter-spacing: 4px;
+            letter-spacing: 6px;
             transition: all 0.3s ease;
-            background: white;
         }
-        .input-group input:focus {
+
+        input[type="text"]:focus {
             outline: none;
-            border-color: #ff6b35;
-            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+            border-color: var(--primary);
+            background: rgba(0, 255, 136, 0.05);
+            box-shadow: 0 0 20px var(--glow);
         }
-        .btn {
+
+        button {
             width: 100%;
-            padding: 18px;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             border: none;
             border-radius: 12px;
-            font-family: 'Kanit', sans-serif;
-            font-size: 18px;
-            font-weight: 600;
+            color: var(--bg-dark);
+            font-family: 'Lexend', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
             transition: all 0.3s ease;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #ff6b35, #ff8c61);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-        }
-        .btn-secondary {
-            background: white;
-            color: #ff6b35;
-            border: 2px solid #ff6b35;
-            margin-top: 10px;
-        }
-        #qr-reader {
-            border-radius: 15px;
+            position: relative;
             overflow: hidden;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
-        .status-box {
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+            color: var(--text-muted);
+        }
+
+        .status {
             text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0;
             font-weight: 500;
+            animation: fadeIn 0.5s ease-out;
         }
-        .status-waiting {
-            background: rgba(255, 193, 7, 0.1);
-            color: #f57c00;
-            border: 2px solid rgba(255, 193, 7, 0.3);
+
+        .status.connected {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--primary);
+            border: 1px solid var(--primary);
         }
-        .status-connected {
-            background: rgba(0, 208, 132, 0.1);
-            color: #00a86b;
-            border: 2px solid rgba(0, 208, 132, 0.3);
+
+        .status.waiting {
+            background: rgba(255, 183, 77, 0.15);
+            color: #ffb74d;
+            border: 1px solid rgba(255, 183, 77, 0.3);
         }
-        .status-error {
-            background: rgba(244, 67, 54, 0.1);
-            color: #d32f2f;
-            border: 2px solid rgba(244, 67, 54, 0.3);
+
+        .status.error {
+            background: rgba(255, 107, 157, 0.15);
+            color: var(--accent);
+            border: 1px solid var(--accent);
         }
-        .received-data {
+
+        #qr-reader {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            margin: 20px 0;
+        }
+
+        #qr-reader video {
+            border-radius: 14px;
+        }
+
+        .scan-history {
             margin-top: 20px;
-            padding: 20px;
-            background: white;
-            border-radius: 15px;
-            border: 2px dashed #00c9b7;
-            min-height: 100px;
         }
-        .received-data-label {
-            font-size: 14px;
-            color: #004e89;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        .received-data-item {
-            padding: 12px 15px;
-            background: #f0f0f0;
+
+        .scan-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 16px;
             border-radius: 10px;
             margin-bottom: 10px;
+            border-left: 3px solid var(--primary);
+            animation: slideIn 0.3s ease-out;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-        }
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 30px;
-            font-style: italic;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .qr-result {
-            margin-top: 20px;
-            padding: 20px;
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            border-radius: 15px;
-            border-left: 5px solid #00d084;
-        }
-        .qr-result-label {
-            font-size: 14px;
-            color: #2e7d32;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        .qr-result-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 16px;
-            color: #1b5e20;
+            font-size: 0.9rem;
             word-break: break-all;
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
         }
-        @media (max-width: 768px) {
-            .container { padding: 25px; }
-            h1 { font-size: 24px; }
-            .room-code { font-size: 36px; letter-spacing: 4px; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .info-text {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+
+        .received-data {
+            background: rgba(0, 255, 136, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--primary);
+            margin: 15px 0;
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+            animation: highlight 0.5s ease-out;
+        }
+
+        @keyframes highlight {
+            0% {
+                background: rgba(0, 255, 136, 0.3);
+                transform: scale(1.02);
+            }
+            100% {
+                background: rgba(0, 255, 136, 0.1);
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .pairing-code {
+                font-size: 2.5rem;
+                letter-spacing: 6px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔗 QR Scanner Connect</h1>
-        <p class="subtitle">เชื่อมต่อมือถือกับคอมพิวเตอร์แบบเรียลไทม์</p>
-
-        <div class="mode-selector">
-            <button class="mode-btn active" onclick="switchMode('computer')">💻 คอมพิวเตอร์</button>
-            <button class="mode-btn" onclick="switchMode('mobile')">📱 มือถือ</button>
+        <div class="header">
+            <div class="logo">📱💻</div>
+            <h1>QR Scanner</h1>
+            <p class="subtitle">เชื่อมต่อมือถือกับคอมพิวเตอร์</p>
         </div>
 
-        <div id="computer-mode" class="mode-content active">
-            <div class="room-code-display">
-                <div class="room-code-label">รหัสห้อง (Room Code)</div>
-                <div class="room-code" id="computerRoomCode">------</div>
-            </div>
-            <div class="status-box status-waiting" id="computerStatus">
-                ⏳ รอการเชื่อมต่อจากมือถือ...
-            </div>
-            <div class="received-data">
-                <div class="received-data-label">📥 ข้อมูล QR ที่ได้รับ:</div>
-                <div id="receivedDataList">
-                    <div class="empty-state">ยังไม่มีข้อมูล</div>
-                </div>
-            </div>
-            <button class="btn btn-secondary" onclick="resetComputer()">🔄 สร้างรหัสใหม่</button>
+        <!-- Mode Selection -->
+        <div id="modeSelection" class="mode-selector">
+            <button class="mode-btn" onclick="selectMode('computer')">
+                <span class="mode-icon">💻</span>
+                <div>คอมพิวเตอร์</div>
+            </button>
+            <button class="mode-btn" onclick="selectMode('mobile')">
+                <span class="mode-icon">📱</span>
+                <div>มือถือ</div>
+            </button>
         </div>
 
-        <div id="mobile-mode" class="mode-content">
-            <div class="input-group">
-                <label for="roomCodeInput">🔑 ใส่รหัสห้องจากคอมพิวเตอร์</label>
-                <input type="text" id="roomCodeInput" placeholder="000000" maxlength="6" oninput="this.value = this.value.toUpperCase()">
-            </div>
-            <button class="btn btn-primary" onclick="connectToRoom()">เชื่อมต่อ</button>
-            <div id="mobileStatus" class="hidden"></div>
-            <div id="scannerSection" class="hidden">
-                <div style="margin: 20px 0;">
-                    <button class="btn btn-primary" id="scanBtn" onclick="toggleScanning()">📷 เปิดกล้องสแกน QR</button>
+        <!-- Computer Mode -->
+        <div id="computerSection" class="section">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; text-align: center;">โหมดคอมพิวเตอร์</h2>
+                <p class="info-text">ให้มือถือใช้รหัสนี้เพื่อเชื่อมต่อ</p>
+                <div id="computerCode" class="pairing-code">----</div>
+                <div id="computerStatus" class="status waiting">กำลังรอการเชื่อมต่อ...</div>
+                
+                <div id="receivedDataSection" style="display: none;">
+                    <h3 style="margin-top: 20px; margin-bottom: 10px;">ข้อมูลที่ได้รับ:</h3>
+                    <div id="receivedData" class="received-data"></div>
+                    <button onclick="copyToClipboard()">📋 คัดลอกข้อมูล</button>
                 </div>
-                <div id="qr-reader" style="display: none;"></div>
-                <div id="scanResult" class="hidden"></div>
-                <button class="btn btn-secondary" onclick="disconnectMobile()">❌ ยกเลิกการเชื่อมต่อ</button>
+            </div>
+        </div>
+
+        <!-- Mobile Mode -->
+        <div id="mobileSection" class="section">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; text-align: center;">โหมดมือถือ</h2>
+                
+                <div id="mobilePairing">
+                    <div class="input-group">
+                        <label>ใส่รหัสจากคอมพิวเตอร์</label>
+                        <input type="text" id="pairingCodeInput" maxlength="4" placeholder="----" style="text-transform: uppercase;">
+                    </div>
+                    <button onclick="connectToComputer()">🔗 เชื่อมต่อ</button>
+                </div>
+
+                <div id="mobileScanner" style="display: none;">
+                    <div id="mobileStatus" class="status connected">เชื่อมต่อสำเร็จ!</div>
+                    <div id="qr-reader"></div>
+                    <button onclick="stopScanning()" style="background: linear-gradient(135deg, var(--accent), #ff4081);">⏹️ หยุดสแกน</button>
+                    
+                    <div class="scan-history" id="scanHistory" style="display: none;">
+                        <h3 style="margin-bottom: 10px;">ประวัติการสแกน:</h3>
+                        <div id="historyList"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        let peer = null;
-        let conn = null;
-        let currentRoomCode = null;
-        let html5QrCode = null;
-        let isScanning = false;
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        function initPeer() {
-            peer = new Peer({
-                config: {
-                    'iceServers': [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            });
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD041vIYJDCS6rgVpN2gF74nnXJVQWvTGs",
+            authDomain: "qr-scanner-5f457.firebaseapp.com",
+            databaseURL: "https://qr-scanner-5f457-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qr-scanner-5f457",
+            storageBucket: "qr-scanner-5f457.firebasestorage.app",
+            messagingSenderId: "304467409014",
+            appId: "1:304467409014:web:85fbb2778511fe6dc38757"
+        };
 
-            peer.on('open', (id) => {
-                console.log('Peer ID:', id);
-                currentRoomCode = generateRoomCode();
-                document.getElementById('computerRoomCode').textContent = currentRoomCode;
-                localStorage.setItem('room_' + currentRoomCode, id);
-            });
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-            peer.on('connection', (connection) => {
-                conn = connection;
-                conn.on('open', () => {
-                    updateComputerStatus('connected', '✅ เชื่อมต่อสำเร็จ!');
-                });
-                conn.on('data', (data) => {
-                    console.log('Received:', data);
-                    addReceivedData(data);
-                });
-                conn.on('close', () => {
-                    updateComputerStatus('waiting', '⏳ การเชื่อมต่อถูกตัดขาด รอเชื่อมต่อใหม่...');
-                });
-            });
+        // Global variables
+        window.currentMode = null;
+        window.pairingCode = null;
+        window.isConnected = false;
+        window.html5QrCode = null;
+        window.sessionRef = null;
 
-            peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                updateComputerStatus('error', '❌ เกิดข้อผิดพลาด: ' + err.type);
-            });
-        }
-
-        function generateRoomCode() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        function updateComputerStatus(type, message) {
-            const statusEl = document.getElementById('computerStatus');
-            statusEl.className = 'status-box status-' + type;
-            statusEl.innerHTML = message;
-        }
-
-        function addReceivedData(data) {
-            const listEl = document.getElementById('receivedDataList');
-            const emptyState = listEl.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
+        // Generate random pairing code
+        function generateCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 4; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-            const item = document.createElement('div');
-            item.className = 'received-data-item';
-            item.textContent = data;
-            listEl.insertBefore(item, listEl.firstChild);
-            while (listEl.children.length > 10) {
-                listEl.removeChild(listEl.lastChild);
-            }
+            return code;
         }
 
-        function resetComputer() {
-            if (peer) {
-                peer.destroy();
-            }
-            document.getElementById('receivedDataList').innerHTML = '<div class="empty-state">ยังไม่มีข้อมูล</div>';
-            initPeer();
-        }
-
-        function connectToRoom() {
-            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-            if (!roomCode || roomCode.length !== 6) {
-                showMobileStatus('error', '❌ กรุณาใส่รหัสห้อง 6 ตัวอักษร');
-                return;
-            }
-
-            const peerId = localStorage.getItem('room_' + roomCode);
-            if (!peerId) {
-                showMobileStatus('error', '❌ ไม่พบห้องนี้ กรุณาตรวจสอบรหัสอีกครั้ง');
-                return;
-            }
-
-            if (peer) {
-                peer.destroy();
-            }
-
-            peer = new Peer({
-                config: {
-                    'iceServers': [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            });
-
-            peer.on('open', () => {
-                conn = peer.connect(peerId);
-                
-                conn.on('open', () => {
-                    showMobileStatus('connected', '✅ เชื่อมต่อสำเร็จ! สามารถสแกน QR Code ได้แล้ว');
-                    document.getElementById('scannerSection').classList.remove('hidden');
-                });
-
-                conn.on('error', (err) => {
-                    showMobileStatus('error', '❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
-                });
-            });
-
-            peer.on('error', (err) => {
-                showMobileStatus('error', '❌ ไม่สามารถเชื่อมต่อได้: ' + err.type);
-            });
-        }
-
-        function showMobileStatus(type, message) {
-            const statusEl = document.getElementById('mobileStatus');
-            statusEl.className = 'status-box status-' + type;
-            statusEl.innerHTML = message;
-            statusEl.classList.remove('hidden');
-        }
-
-        function toggleScanning() {
-            if (isScanning) {
-                stopScanning();
-            } else {
-                startScanning();
-            }
-        }
-
-        function startScanning() {
-            const qrReaderEl = document.getElementById('qr-reader');
-            qrReaderEl.style.display = 'block';
+        // Select mode
+        window.selectMode = function(mode) {
+            window.currentMode = mode;
+            document.getElementById('modeSelection').style.display = 'none';
             
-            html5QrCode = new Html5Qrcode("qr-reader");
+            if (mode === 'computer') {
+                document.getElementById('computerSection').classList.add('active');
+                startComputerMode();
+            } else {
+                document.getElementById('mobileSection').classList.add('active');
+            }
+        };
 
-            Html5Qrcode.getCameras().then(cameras => {
-                if (cameras && cameras.length) {
-                    const cameraId = cameras[cameras.length - 1].id;
-                    html5QrCode.start(
-                        cameraId,
-                        {
-                            fps: 10,
-                            qrbox: { width: 250, height: 250 }
-                        },
-                        (decodedText) => {
-                            onScanSuccess(decodedText);
-                        },
-                        (errorMessage) => {
-                            // Ignore
-                        }
-                    ).then(() => {
-                        isScanning = true;
-                        document.getElementById('scanBtn').textContent = '⏸️ หยุดสแกน';
-                    }).catch((err) => {
-                        console.error('Error starting scanner:', err);
-                        showMobileStatus('error', '❌ ไม่สามารถเปิดกล้องได้');
+        // Computer Mode
+        function startComputerMode() {
+            window.pairingCode = generateCode();
+            document.getElementById('computerCode').textContent = window.pairingCode;
+            
+            // Create session in Firebase
+            window.sessionRef = ref(database, 'sessions/' + window.pairingCode);
+            set(window.sessionRef, {
+                code: window.pairingCode,
+                timestamp: Date.now(),
+                data: null
+            });
+            
+            // Listen for data changes
+            onValue(window.sessionRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.data) {
+                    document.getElementById('computerStatus').className = 'status connected';
+                    document.getElementById('computerStatus').textContent = 'เชื่อมต่อแล้ว! ได้รับข้อมูล';
+                    document.getElementById('receivedDataSection').style.display = 'block';
+                    document.getElementById('receivedData').textContent = data.data;
+                    
+                    // Auto-copy to clipboard
+                    navigator.clipboard.writeText(data.data).then(() => {
+                        console.log('ข้อมูลถูกคัดลอกแล้ว:', data.data);
+                    }).catch(err => {
+                        console.error('ไม่สามารถคัดลอกอัตโนมัติได้:', err);
+                    });
+                    
+                    // Clear the data after reading
+                    set(window.sessionRef, {
+                        code: window.pairingCode,
+                        timestamp: Date.now(),
+                        data: null
                     });
                 }
-            }).catch((err) => {
-                console.error('Error getting cameras:', err);
-                showMobileStatus('error', '❌ ไม่พบกล้อง');
             });
         }
 
-        function stopScanning() {
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('qr-reader').style.display = 'none';
-                    isScanning = false;
-                    document.getElementById('scanBtn').textContent = '📷 เปิดกล้องสแกน QR';
+        window.copyToClipboard = function() {
+            const data = document.getElementById('receivedData').textContent;
+            navigator.clipboard.writeText(data).then(() => {
+                alert('คัดลอกข้อมูลแล้ว! ✅');
+            });
+        };
+
+        // Mobile Mode
+        window.connectToComputer = function() {
+            const code = document.getElementById('pairingCodeInput').value.toUpperCase();
+            
+            if (code.length !== 4) {
+                alert('กรุณาใส่รหัส 4 ตัว');
+                return;
+            }
+
+            window.pairingCode = code;
+            window.sessionRef = ref(database, 'sessions/' + code);
+            
+            // Check if session exists
+            onValue(window.sessionRef, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    document.getElementById('mobileStatus').className = 'status error';
+                    document.getElementById('mobileStatus').textContent = 'ไม่พบรหัสนี้ กรุณาลองใหม่';
+                    return;
+                }
+                
+                window.isConnected = true;
+                document.getElementById('mobilePairing').style.display = 'none';
+                document.getElementById('mobileScanner').style.display = 'block';
+                startScanning();
+            }, {
+                onlyOnce: true
+            });
+        };
+
+        // QR Scanner
+        function startScanning() {
+            window.html5QrCode = new Html5Qrcode("qr-reader");
+            
+            window.html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText) => {
+                    onScanSuccess(decodedText);
+                },
+                (errorMessage) => {
+                    // Scan error, ignore
+                }
+            ).catch((err) => {
+                console.error('Error starting scanner:', err);
+                alert('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้อง');
+            });
+        }
+
+        function onScanSuccess(decodedText) {
+            // Send data to computer via Firebase
+            set(window.sessionRef, {
+                code: window.pairingCode,
+                timestamp: Date.now(),
+                data: decodedText
+            });
+
+            // Add to history
+            const historyDiv = document.getElementById('scanHistory');
+            const historyList = document.getElementById('historyList');
+            historyDiv.style.display = 'block';
+            
+            const item = document.createElement('div');
+            item.className = 'scan-item';
+            item.textContent = decodedText;
+            historyList.insertBefore(item, historyList.firstChild);
+
+            // Show feedback
+            const statusEl = document.getElementById('mobileStatus');
+            statusEl.className = 'status connected';
+            statusEl.textContent = '✅ ส่งข้อมูลแล้ว!';
+            
+            setTimeout(() => {
+                statusEl.textContent = 'เชื่อมต่อสำเร็จ!';
+            }, 2000);
+        }
+
+        window.stopScanning = function() {
+            if (window.html5QrCode) {
+                window.html5QrCode.stop().then(() => {
+                    window.html5QrCode.clear();
+                    document.getElementById('mobileScanner').style.display = 'none';
+                    document.getElementById('mobilePairing').style.display = 'block';
+                    document.getElementById('pairingCodeInput').value = '';
+                    window.isConnected = false;
                 }).catch((err) => {
                     console.error('Error stopping scanner:', err);
                 });
             }
-        }
+        };
 
-        function onScanSuccess(decodedText) {
-            if (conn && conn.open) {
-                conn.send(decodedText);
-                
-                const resultEl = document.getElementById('scanResult');
-                resultEl.className = 'qr-result';
-                resultEl.innerHTML = '<div class="qr-result-label">✅ สแกนสำเร็จและส่งข้อมูลแล้ว!</div><div class="qr-result-value">' + decodedText + '</div>';
-                resultEl.classList.remove('hidden');
-                
-                stopScanning();
-                
-                setTimeout(() => {
-                    resultEl.classList.add('hidden');
-                }, 5000);
-            }
-        }
-
-        function disconnectMobile() {
-            stopScanning();
-            
-            if (conn) {
-                conn.close();
-            }
-            
-            if (peer) {
-                peer.destroy();
-            }
-            
-            document.getElementById('scannerSection').classList.add('hidden');
-            document.getElementById('mobileStatus').classList.add('hidden');
-            document.getElementById('roomCodeInput').value = '';
-        }
-
-        function switchMode(mode) {
-            const buttons = document.querySelectorAll('.mode-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const contents = document.querySelectorAll('.mode-content');
-            contents.forEach(content => content.classList.remove('active'));
-            
-            if (mode === 'computer') {
-                document.getElementById('computer-mode').classList.add('active');
-            } else {
-                document.getElementById('mobile-mode').classList.add('active');
-            }
-        }
-
-        window.addEventListener('load', () => {
-            initPeer();
+        // Allow only uppercase input
+        document.getElementById('pairingCodeInput')?.addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase();
         });
     </script>
 </body>
