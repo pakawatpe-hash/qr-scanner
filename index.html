@@ -469,7 +469,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, onValue, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, set, onValue, remove, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         // Firebase configuration
         const firebaseConfig = {
@@ -517,42 +517,55 @@
         };
 
         // Computer Mode
-        function startComputerMode() {
+        async function startComputerMode() {
             window.pairingCode = generateCode();
             document.getElementById('computerCode').textContent = window.pairingCode;
             
+            console.log('กำลังสร้าง session ด้วยรหัส:', window.pairingCode);
+            
             // Create session in Firebase
             window.sessionRef = ref(database, 'sessions/' + window.pairingCode);
-            set(window.sessionRef, {
-                code: window.pairingCode,
-                timestamp: Date.now(),
-                data: null
-            });
             
-            // Listen for data changes
-            onValue(window.sessionRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.data) {
-                    document.getElementById('computerStatus').className = 'status connected';
-                    document.getElementById('computerStatus').textContent = 'เชื่อมต่อแล้ว! ได้รับข้อมูล';
-                    document.getElementById('receivedDataSection').style.display = 'block';
-                    document.getElementById('receivedData').textContent = data.data;
+            try {
+                await set(window.sessionRef, {
+                    code: window.pairingCode,
+                    timestamp: Date.now(),
+                    data: null
+                });
+                
+                console.log('✅ สร้าง session สำเร็จ');
+                
+                // Listen for data changes
+                onValue(window.sessionRef, (snapshot) => {
+                    const data = snapshot.val();
+                    console.log('ได้รับข้อมูลจาก Firebase:', data);
                     
-                    // Auto-copy to clipboard
-                    navigator.clipboard.writeText(data.data).then(() => {
-                        console.log('ข้อมูลถูกคัดลอกแล้ว:', data.data);
-                    }).catch(err => {
-                        console.error('ไม่สามารถคัดลอกอัตโนมัติได้:', err);
-                    });
-                    
-                    // Clear the data after reading
-                    set(window.sessionRef, {
-                        code: window.pairingCode,
-                        timestamp: Date.now(),
-                        data: null
-                    });
-                }
-            });
+                    if (data && data.data) {
+                        document.getElementById('computerStatus').className = 'status connected';
+                        document.getElementById('computerStatus').textContent = 'เชื่อมต่อแล้ว! ได้รับข้อมูล';
+                        document.getElementById('receivedDataSection').style.display = 'block';
+                        document.getElementById('receivedData').textContent = data.data;
+                        
+                        // Auto-copy to clipboard
+                        navigator.clipboard.writeText(data.data).then(() => {
+                            console.log('ข้อมูลถูกคัดลอกแล้ว:', data.data);
+                        }).catch(err => {
+                            console.error('ไม่สามารถคัดลอกอัตโนมัติได้:', err);
+                        });
+                        
+                        // Clear the data after reading
+                        set(window.sessionRef, {
+                            code: window.pairingCode,
+                            timestamp: Date.now(),
+                            data: null
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการสร้าง session:', error);
+                document.getElementById('computerStatus').className = 'status error';
+                document.getElementById('computerStatus').textContent = 'เกิดข้อผิดพลาด: ' + error.message;
+            }
         }
 
         window.copyToClipboard = function() {
@@ -563,7 +576,7 @@
         };
 
         // Mobile Mode
-        window.connectToComputer = function() {
+        window.connectToComputer = async function() {
             const code = document.getElementById('pairingCodeInput').value.toUpperCase();
             
             if (code.length !== 4) {
@@ -571,25 +584,32 @@
                 return;
             }
 
+            console.log('กำลังเชื่อมต่อด้วยรหัส:', code);
+
             window.pairingCode = code;
             window.sessionRef = ref(database, 'sessions/' + code);
             
-            // Check if session exists
-            onValue(window.sessionRef, (snapshot) => {
-                const data = snapshot.val();
-                if (!data) {
-                    document.getElementById('mobileStatus').className = 'status error';
-                    document.getElementById('mobileStatus').textContent = 'ไม่พบรหัสนี้ กรุณาลองใหม่';
+            try {
+                // Check if session exists
+                const snapshot = await get(window.sessionRef);
+                
+                console.log('ตรวจสอบ session:', snapshot.exists(), snapshot.val());
+                
+                if (!snapshot.exists()) {
+                    alert('❌ ไม่พบรหัสนี้ กรุณาตรวจสอบรหัสอีกครั้ง');
+                    console.error('Session not found for code:', code);
                     return;
                 }
                 
+                console.log('✅ พบ session แล้ว กำลังเชื่อมต่อ...');
                 window.isConnected = true;
                 document.getElementById('mobilePairing').style.display = 'none';
                 document.getElementById('mobileScanner').style.display = 'block';
                 startScanning();
-            }, {
-                onlyOnce: true
-            });
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการเชื่อมต่อ:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message);
+            }
         };
 
         // QR Scanner
