@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner Connect</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: #f0f0f0;
+            padding: 8px;
+            border-radius: 15px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-family: 'Kanit', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .mode-btn.active {
+            background: white;
+            color: #ff6b35;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .mode-content {
+            display: none;
+        }
+        .mode-content.active {
+            display: block;
+        }
+        .room-code-display {
+            background: linear-gradient(135deg, #ff6b35, #00c9b7);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .room-code-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .room-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: 8px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Kanit', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b35, #ff8c61);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: white;
+            color: #ff6b35;
+            border: 2px solid #ff6b35;
+            margin-top: 10px;
+        }
+        #qr-reader {
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .status-box {
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .status-waiting {
+            background: rgba(255, 193, 7, 0.1);
+            color: #f57c00;
+            border: 2px solid rgba(255, 193, 7, 0.3);
+        }
+        .status-connected {
+            background: rgba(0, 208, 132, 0.1);
+            color: #00a86b;
+            border: 2px solid rgba(0, 208, 132, 0.3);
+        }
+        .status-error {
+            background: rgba(244, 67, 54, 0.1);
+            color: #d32f2f;
+            border: 2px solid rgba(244, 67, 54, 0.3);
+        }
+        .received-data {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            border: 2px dashed #00c9b7;
+            min-height: 100px;
+        }
+        .received-data-label {
+            font-size: 14px;
+            color: #004e89;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .received-data-item {
+            padding: 12px 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+        }
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+            font-style: italic;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .qr-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 15px;
+            border-left: 5px solid #00d084;
+        }
+        .qr-result-label {
+            font-size: 14px;
+            color: #2e7d32;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .qr-result-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            color: #1b5e20;
+            word-break: break-all;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 25px; }
+            h1 { font-size: 24px; }
+            .room-code { font-size: 36px; letter-spacing: 4px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 QR Scanner Connect</h1>
+        <p class="subtitle">เชื่อมต่อมือถือกับคอมพิวเตอร์แบบเรียลไทม์</p>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="switchMode('computer')">💻 คอมพิวเตอร์</button>
+            <button class="mode-btn" onclick="switchMode('mobile')">📱 มือถือ</button>
+        </div>
+
+        <div id="computer-mode" class="mode-content active">
+            <div class="room-code-display">
+                <div class="room-code-label">รหัสห้อง (Room Code)</div>
+                <div class="room-code" id="computerRoomCode">------</div>
+            </div>
+            <div class="status-box status-waiting" id="computerStatus">
+                ⏳ รอการเชื่อมต่อจากมือถือ...
+            </div>
+            <div class="received-data">
+                <div class="received-data-label">📥 ข้อมูล QR ที่ได้รับ:</div>
+                <div id="receivedDataList">
+                    <div class="empty-state">ยังไม่มีข้อมูล</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="resetComputer()">🔄 สร้างรหัสใหม่</button>
+        </div>
+
+        <div id="mobile-mode" class="mode-content">
+            <div class="input-group">
+                <label for="roomCodeInput">🔑 ใส่รหัสห้องจากคอมพิวเตอร์</label>
+                <input type="text" id="roomCodeInput" placeholder="000000" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+            </div>
+            <button class="btn btn-primary" onclick="connectToRoom()">เชื่อมต่อ</button>
+            <div id="mobileStatus" class="hidden"></div>
+            <div id="scannerSection" class="hidden">
+                <div style="margin: 20px 0;">
+                    <button class="btn btn-primary" id="scanBtn" onclick="toggleScanning()">📷 เปิดกล้องสแกน QR</button>
+                </div>
+                <div id="qr-reader" style="display: none;"></div>
+                <div id="scanResult" class="hidden"></div>
+                <button class="btn btn-secondary" onclick="disconnectMobile()">❌ ยกเลิกการเชื่อมต่อ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let peer = null;
+        let conn = null;
+        let currentRoomCode = null;
+        let html5QrCode = null;
+        let isScanning = false;
+
+        function initPeer() {
+            peer = new Peer({
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            });
+
+            peer.on('open', (id) => {
+                console.log('Peer ID:', id);
+                currentRoomCode = generateRoomCode();
+                document.getElementById('computerRoomCode').textContent = currentRoomCode;
+                localStorage.setItem('room_' + currentRoomCode, id);
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection;
+                conn.on('open', () => {
+                    updateComputerStatus('connected', '✅ เชื่อมต่อสำเร็จ!');
+                });
+                conn.on('data', (data) => {
+                    console.log('Received:', data);
+                    addReceivedData(data);
+                });
+                conn.on('close', () => {
+                    updateComputerStatus('waiting', '⏳ การเชื่อมต่อถูกตัดขาด รอเชื่อมต่อใหม่...');
+                });
+            });
+
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                updateComputerStatus('error', '❌ เกิดข้อผิดพลาด: ' + err.type);
+            });
+        }
+
+        function generateRoomCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function updateComputerStatus(type, message) {
+            const statusEl = document.getElementById('computerStatus');
+            statusEl.className = 'status-box status-' + type;
+            statusEl.innerHTML = message;
+        }
+
+        function addReceivedData(data) {
+            const listEl = document.getElementById('receivedDataList');
+            const emptyState = listEl.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            const item = document.createElement('div');
+            item.className = 'received-data-item';
+            item.textContent = data;
+            listEl.insertBefore(item, listEl.firstChild);
+            while (listEl.children.length > 10) {
+                listEl.removeChild(listEl.lastChild);
+            }
+        }
+
+        function resetComputer() {
+            if (peer) {
+                peer.destroy();
+            }
+            document.getElementById('receivedDataList').innerHTML = '<div class="empty-state">ยังไม่มีข้อมูล</div>';
+            initPeer();
+        }
+
+        function connectToRoom() {
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            if (!roomCode || roomCode.length !== 6) {
+                showMobileStatus('error', '❌ กรุณาใส่รหัสห้อง 6 ตัวอักษร');
+                return;
+            }
+
+            const peerId = localStorage.getItem('room_' + roomCode);
+            if (!peerId) {
+                showMobileStatus('error', '❌ ไม่พบห้องนี้ กรุณาตรวจสอบรหัสอีกครั้ง');
+                return;
+            }
+
+            if (peer) {
+                peer.destroy();
+            }
+
+            peer = new Peer({
+                config: {
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            });
+
+            peer.on('open', () => {
+                conn = peer.connect(peerId);
+                
+                conn.on('open', () => {
+                    showMobileStatus('connected', '✅ เชื่อมต่อสำเร็จ! สามารถสแกน QR Code ได้แล้ว');
+                    document.getElementById('scannerSection').classList.remove('hidden');
+                });
+
+                conn.on('error', (err) => {
+                    showMobileStatus('error', '❌ เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                });
+            });
+
+            peer.on('error', (err) => {
+                showMobileStatus('error', '❌ ไม่สามารถเชื่อมต่อได้: ' + err.type);
+            });
+        }
+
+        function showMobileStatus(type, message) {
+            const statusEl = document.getElementById('mobileStatus');
+            statusEl.className = 'status-box status-' + type;
+            statusEl.innerHTML = message;
+            statusEl.classList.remove('hidden');
+        }
+
+        function toggleScanning() {
+            if (isScanning) {
+                stopScanning();
+            } else {
+                startScanning();
+            }
+        }
+
+        function startScanning() {
+            const qrReaderEl = document.getElementById('qr-reader');
+            qrReaderEl.style.display = 'block';
+            
+            html5QrCode = new Html5Qrcode("qr-reader");
+
+            Html5Qrcode.getCameras().then(cameras => {
+                if (cameras && cameras.length) {
+                    const cameraId = cameras[cameras.length - 1].id;
+                    html5QrCode.start(
+                        cameraId,
+                        {
+                            fps: 10,
+                            qrbox: { width: 250, height: 250 }
+                        },
+                        (decodedText) => {
+                            onScanSuccess(decodedText);
+                        },
+                        (errorMessage) => {
+                            // Ignore
+                        }
+                    ).then(() => {
+                        isScanning = true;
+                        document.getElementById('scanBtn').textContent = '⏸️ หยุดสแกน';
+                    }).catch((err) => {
+                        console.error('Error starting scanner:', err);
+                        showMobileStatus('error', '❌ ไม่สามารถเปิดกล้องได้');
+                    });
+                }
+            }).catch((err) => {
+                console.error('Error getting cameras:', err);
+                showMobileStatus('error', '❌ ไม่พบกล้อง');
+            });
+        }
+
+        function stopScanning() {
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('qr-reader').style.display = 'none';
+                    isScanning = false;
+                    document.getElementById('scanBtn').textContent = '📷 เปิดกล้องสแกน QR';
+                }).catch((err) => {
+                    console.error('Error stopping scanner:', err);
+                });
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            if (conn && conn.open) {
+                conn.send(decodedText);
+                
+                const resultEl = document.getElementById('scanResult');
+                resultEl.className = 'qr-result';
+                resultEl.innerHTML = '<div class="qr-result-label">✅ สแกนสำเร็จและส่งข้อมูลแล้ว!</div><div class="qr-result-value">' + decodedText + '</div>';
+                resultEl.classList.remove('hidden');
+                
+                stopScanning();
+                
+                setTimeout(() => {
+                    resultEl.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        function disconnectMobile() {
+            stopScanning();
+            
+            if (conn) {
+                conn.close();
+            }
+            
+            if (peer) {
+                peer.destroy();
+            }
+            
+            document.getElementById('scannerSection').classList.add('hidden');
+            document.getElementById('mobileStatus').classList.add('hidden');
+            document.getElementById('roomCodeInput').value = '';
+        }
+
+        function switchMode(mode) {
+            const buttons = document.querySelectorAll('.mode-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const contents = document.querySelectorAll('.mode-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            if (mode === 'computer') {
+                document.getElementById('computer-mode').classList.add('active');
+            } else {
+                document.getElementById('mobile-mode').classList.add('active');
+            }
+        }
+
+        window.addEventListener('load', () => {
+            initPeer();
+        });
+    </script>
+</body>
+</html>
