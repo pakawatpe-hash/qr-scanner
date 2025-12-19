@@ -541,16 +541,25 @@
                     console.log('ได้รับข้อมูลจาก Firebase:', data);
                     
                     if (data && data.data) {
-                        document.getElementById('computerStatus').className = 'status connected';
-                        document.getElementById('computerStatus').textContent = 'เชื่อมต่อแล้ว! ได้รับข้อมูล';
-                        document.getElementById('receivedDataSection').style.display = 'block';
-                        document.getElementById('receivedData').textContent = data.data;
+                        const qrData = data.data;
                         
-                        // Auto-copy to clipboard
-                        navigator.clipboard.writeText(data.data).then(() => {
-                            console.log('ข้อมูลถูกคัดลอกแล้ว:', data.data);
+                        document.getElementById('computerStatus').className = 'status connected';
+                        document.getElementById('computerStatus').textContent = '✅ ได้รับข้อมูล! กรุณากด Ctrl+V ใน Excel';
+                        document.getElementById('receivedDataSection').style.display = 'block';
+                        document.getElementById('receivedData').textContent = qrData;
+                        
+                        // Copy to clipboard with newline
+                        const textToPaste = qrData + '\n';
+                        navigator.clipboard.writeText(textToPaste).then(() => {
+                            console.log('ข้อมูลพร้อม paste:', qrData);
+                            
+                            // Show notification
+                            showPasteNotification();
+                            
+                            // Play sound (optional)
+                            playBeep();
                         }).catch(err => {
-                            console.error('ไม่สามารถคัดลอกอัตโนมัติได้:', err);
+                            console.error('ไม่สามารถคัดลอกได้:', err);
                         });
                         
                         // Clear the data after reading
@@ -680,6 +689,34 @@
         document.getElementById('pairingCodeInput')?.addEventListener('input', function(e) {
             this.value = this.value.toUpperCase();
         });
+
+        // Show paste notification
+        function showPasteNotification() {
+            const statusEl = document.getElementById('computerStatus');
+            statusEl.className = 'status connected';
+            statusEl.innerHTML = '✅ พร้อม! กด <strong>Ctrl+V</strong> ใน Excel แล้วกด Enter';
+            statusEl.style.fontSize = '1.1rem';
+            statusEl.style.animation = 'pulse 0.5s ease-in-out 3';
+        }
+
+        // Play beep sound
+        function playBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
     </script>
 </body>
 </html>
